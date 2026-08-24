@@ -13,12 +13,17 @@ import {
   Filter,
   Pencil,
   Globe,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { useWorkshop } from '../context/WorkshopContext';
 import { PlaceItem } from '../types';
 
 export const PlacesView: React.FC = () => {
   const { places, addPlace, updatePlace, votePlace, deletePlace, currentUser } = useWorkshop();
+
+  const KAKAO_MAP_COLLECTION_URL = 'https://kko.to/01D_G-TWZx';
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingPlace, setEditingPlace] = useState<PlaceItem | null>(null);
@@ -171,6 +176,12 @@ export const PlacesView: React.FC = () => {
     setShowAddModal(false);
   };
 
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(KAKAO_MAP_COLLECTION_URL);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
   const filteredPlaces = places.filter((p) => {
     const matchRegion = filterRegion === '전체' || p.region === filterRegion;
     const matchCat = filterCategory === '전체' || p.category === filterCategory;
@@ -206,6 +217,69 @@ export const PlacesView: React.FC = () => {
           <Plus className="w-4 h-4" />
           <span>장소 추천하기</span>
         </button>
+      </div>
+
+      {/* KakaoMap Saved List Banner */}
+      <div className="bg-gradient-to-br from-amber-50/90 via-yellow-50/50 to-emerald-50/40 rounded-2xl p-5 border border-amber-200/80 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-[#FEE500] text-[#191919] border border-amber-300/80 flex items-center justify-center font-extrabold text-base shadow-2xs shrink-0">
+              K
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 flex items-center space-x-1.5">
+                  <span>🗺️ 카카오맵 워크숍 저장 목록</span>
+                </h3>
+                <span className="text-[10px] bg-amber-500 text-slate-900 px-2 py-0.5 rounded-md font-bold shadow-2xs">
+                  저장 리스트
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1">
+                추천된 장소들이 한 번에 모여있는 카카오맵 저장 목록입니다.{' '}
+                <a
+                  href={KAKAO_MAP_COLLECTION_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-amber-800 font-semibold underline underline-offset-2 hover:text-amber-900 break-all"
+                >
+                  {KAKAO_MAP_COLLECTION_URL}
+                </a>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="flex items-center space-x-1 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-2xs transition"
+              title="링크 주소 복사"
+            >
+              {copiedLink ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-amber-600" />
+                  <span className="text-amber-700 font-bold">복사됨!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-slate-500" />
+                  <span>링크 복사</span>
+                </>
+              )}
+            </button>
+
+            <a
+              href={KAKAO_MAP_COLLECTION_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center space-x-1.5 px-4 py-2 bg-[#FEE500] hover:bg-[#FDD835] text-[#191919] border border-amber-300 text-xs font-bold rounded-xl shadow-xs transition"
+            >
+              <span>카카오맵 바로가기</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}

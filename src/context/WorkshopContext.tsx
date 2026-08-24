@@ -68,6 +68,7 @@ interface WorkshopContextType {
 
   // Idea actions
   addIdea: (idea: Omit<IdeaItem, 'id'>) => Promise<void>;
+  updateIdea: (ideaId: string, updates: Partial<IdeaItem>) => Promise<void>;
   voteIdea: (ideaId: string, memberName: MemberName) => Promise<void>;
   deleteIdea: (ideaId: string) => Promise<void>;
 
@@ -336,6 +337,14 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const updateIdea = async (ideaId: string, updates: Partial<IdeaItem>) => {
+    try {
+      await updateDoc(doc(db, 'ideas', ideaId), updates);
+    } catch (e) {
+      console.error('Error updating idea:', e);
+    }
+  };
+
   const voteIdea = async (ideaId: string, memberName: MemberName) => {
     try {
       const idea = ideas.find((i) => i.id === ideaId);
@@ -600,6 +609,7 @@ export const WorkshopProvider: React.FC<{ children: React.ReactNode }> = ({
         updateSchedule,
         deleteSchedule,
         addIdea,
+        updateIdea,
         voteIdea,
         deleteIdea,
         addPlace,

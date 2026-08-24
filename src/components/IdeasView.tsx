@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Lightbulb, ThumbsUp, Plus, Trash2, Heart, Sparkles, Filter } from 'lucide-react';
+import { Lightbulb, ThumbsUp, Plus, Trash2, Sparkles, Filter, Pencil, ExternalLink } from 'lucide-react';
 import { useWorkshop } from '../context/WorkshopContext';
-import { IdeaItem, WORKSHOP_MEMBERS, MemberName } from '../types';
+import { IdeaItem, WORKSHOP_MEMBERS } from '../types';
 
 export const IdeasView: React.FC = () => {
-  const { ideas, addIdea, voteIdea, deleteIdea, currentUser } = useWorkshop();
+  const { ideas, addIdea, updateIdea, voteIdea, deleteIdea, currentUser } = useWorkshop();
 
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editingIdea, setEditingIdea] = useState<IdeaItem | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('전체');
 
   // Form state
@@ -53,23 +54,90 @@ export const IdeasView: React.FC = () => {
     },
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const openCreateModal = () => {
+    setEditingIdea(null);
+    setTitle('');
+    setContent('');
+    setCategory('팀빌딩 활동');
+    setColor('yellow');
+    setShowModal(true);
+  };
+
+  const openEditModal = (idea: IdeaItem) => {
+    setEditingIdea(idea);
+    setTitle(idea.title);
+    setContent(idea.content || '');
+    setCategory(idea.category);
+    setColor(idea.color || 'yellow');
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    await addIdea({
-      title: title.trim(),
-      content: content.trim(),
-      author: currentUser,
-      category,
-      votes: [currentUser], // auto-vote for own idea
-      color,
-      createdAt: new Date().toISOString(),
-    });
+    if (editingIdea) {
+      await updateIdea(editingIdea.id, {
+        title: title.trim(),
+        content: content.trim(),
+        category,
+        color,
+      });
+    } else {
+      await addIdea({
+        title: title.trim(),
+        content: content.trim(),
+        author: currentUser,
+        category,
+        votes: [currentUser], // auto-vote for own idea
+        color,
+        createdAt: new Date().toISOString(),
+      });
+    }
 
     setTitle('');
     setContent('');
-    setShowAddModal(false);
+    setEditingIdea(null);
+    setShowModal(false);
+  };
+
+  // Helper to format text with shortened clickable URL badges
+  const renderFormattedContent = (text: string) => {
+    if (!text) return null;
+
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+
+    return parts.map((part, index) => {
+      if (part.match(urlRegex)) {
+        let shortDisplay = part;
+        try {
+          const parsed = new URL(part);
+          const host = parsed.hostname.replace(/^www\./, '');
+          const path = parsed.pathname + parsed.search;
+          const displayPath = path.length > 14 ? path.substring(0, 10) + '...' : path;
+          shortDisplay = `${host}${displayPath === '/' ? '' : displayPath}`;
+        } catch {
+          shortDisplay = part.length > 24 ? part.substring(0, 20) + '...' : part;
+        }
+
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 font-semibold text-sky-800 hover:text-sky-950 bg-sky-100/90 hover:bg-sky-200/90 border border-sky-200/80 px-2 py-0.5 rounded-lg text-[11px] underline underline-offset-2 transition my-0.5 mx-0.5 align-middle shadow-2xs"
+            title={`링크 열기: ${part}`}
+          >
+            <span>🔗 {shortDisplay}</span>
+            <ExternalLink className="w-3 h-3 shrink-0 opacity-70" />
+          </a>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
   };
 
   const filteredIdeas = ideas.filter(
@@ -94,7 +162,7 @@ export const IdeasView: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => setShowAddModal(true)}
+          onClick={openCreateModal}
           className="flex items-center space-x-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-semibold shadow-xs transition shrink-0"
         >
           <Plus className="w-4 h-4" />
@@ -142,18 +210,18 @@ export const IdeasView: React.FC = () => {
             return (
               <div
                 key={idea.id}
-                className={`group relative rounded-2xl p-5 border transition-all duration-200 shadow-2xs hover:shadow-md flex flex-col justify-between ${style.bg} ${style.border}`}
+                className={`group relative rounded-2xl p-5 border transition-all duration-200 shadow-2xs hover:shadow-md flex flex-col justify-between overflow-hidden min-w-0 ${style.bg} ${style.border}`}
               >
-                <div>
+                <div className="min-w-0 w-full">
                   {/* Category & Author Badge */}
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between gap-2 mb-3 min-w-0">
                     <span
-                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${style.badgeBg}`}
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full shrink-0 ${style.badgeBg}`}
                     >
                       {idea.category}
                     </span>
 
-                    <div className="flex items-center space-x-1.5">
+                    <div className="flex items-center space-x-1.5 shrink-0">
                       <div
                         className={`w-5 h-5 rounded-full ${
                           authorInfo?.avatarBg || 'bg-slate-400'
@@ -168,21 +236,21 @@ export const IdeasView: React.FC = () => {
                   </div>
 
                   {/* Title & Content */}
-                  <h3 className={`text-base font-bold mb-2 ${style.text}`}>
+                  <h3 className={`text-base font-bold mb-2 break-words break-all ${style.text}`}>
                     {idea.title}
                   </h3>
                   {idea.content && (
-                    <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap mb-4">
-                      {idea.content}
-                    </p>
+                    <div className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap break-words break-all mb-4">
+                      {renderFormattedContent(idea.content)}
+                    </div>
                   )}
                 </div>
 
-                {/* Footer: Voters & Vote Button */}
-                <div className="pt-3 border-t border-slate-900/10 flex items-center justify-between">
+                {/* Footer: Voters & Action Buttons */}
+                <div className="pt-3 border-t border-slate-900/10 flex items-center justify-between gap-2 min-w-0">
                   {/* Voter Avatars */}
-                  <div className="flex items-center space-x-1">
-                    <div className="flex -space-x-1.5 overflow-hidden">
+                  <div className="flex items-center space-x-1 min-w-0 overflow-hidden">
+                    <div className="flex -space-x-1.5 overflow-hidden shrink-0">
                       {votes.map((voter) => {
                         const voterInfo = WORKSHOP_MEMBERS.find((m) => m.name === voter);
                         return (
@@ -199,14 +267,14 @@ export const IdeasView: React.FC = () => {
                       })}
                     </div>
                     {votes.length > 0 && (
-                      <span className="text-[11px] text-slate-500 font-semibold ml-1">
+                      <span className="text-[11px] text-slate-500 font-semibold ml-1 shrink-0">
                         {votes.length}명
                       </span>
                     )}
                   </div>
 
-                  {/* Upvote Button */}
-                  <div className="flex items-center space-x-1">
+                  {/* Action Buttons: Vote, Edit, Delete */}
+                  <div className="flex items-center space-x-1 shrink-0">
                     <button
                       type="button"
                       onClick={() => voteIdea(idea.id, currentUser)}
@@ -220,12 +288,22 @@ export const IdeasView: React.FC = () => {
                       <span>{hasVoted ? '공감됨' : '공감'}</span>
                     </button>
 
-                    {/* Delete if author or admin */}
+                    {/* Edit Button */}
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(idea)}
+                      className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-white rounded-lg transition opacity-70 group-hover:opacity-100"
+                      title="수정하기"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Delete Button */}
                     <button
                       type="button"
                       onClick={() => deleteIdea(idea.id)}
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition opacity-60 group-hover:opacity-100"
-                      title="삭제"
+                      title="삭제하기"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -237,16 +315,16 @@ export const IdeasView: React.FC = () => {
         )}
       </div>
 
-      {/* Add Idea Modal */}
-      {showAddModal && (
+      {/* Add / Edit Idea Modal */}
+      {showModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
             <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center space-x-2">
               <Sparkles className="w-5 h-5 text-amber-500" />
-              <span>새로운 아이디어 올리기</span>
+              <span>{editingIdea ? '아이디어 수정하기' : '새로운 아이디어 올리기'}</span>
             </h3>
 
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   아이디어 제목 *
@@ -285,9 +363,12 @@ export const IdeasView: React.FC = () => {
                   rows={3}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="구체적인 규칙이나 진행 방식 등을 적어주세요..."
+                  placeholder="구체적인 규칙이나 링크, 진행 방식 등을 적어주세요..."
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-amber-500"
                 />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  ※ 링크(http/https) 입력 시 깔끔하게 축약된 바로가기 버튼으로 자동 변환됩니다.
+                </p>
               </div>
 
               {/* Color selector */}
@@ -320,7 +401,7 @@ export const IdeasView: React.FC = () => {
               <div className="flex space-x-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => setShowModal(false)}
                   className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
                 >
                   취소
@@ -329,7 +410,7 @@ export const IdeasView: React.FC = () => {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl shadow-xs transition"
                 >
-                  올리기
+                  {editingIdea ? '수정 완료' : '올리기'}
                 </button>
               </div>
             </form>
