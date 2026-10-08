@@ -101,11 +101,14 @@ export interface GroupItem {
   notes?: string;
 }
 
+export type BudgetType = 'planned' | 'actual';
+
 export interface BudgetItem {
   id: string;
+  type?: BudgetType; // 'planned' = 예산안, 'actual' = 실제 지출 (기본값: 'planned')
   item: string; // 항목
   amount: number; // 금액
-  payer: MemberName | string; // 지출자
+  payer: MemberName | string; // 지출자 / 담당자
   category: '숙소' | '식비' | '교통' | '레크레이션' | '간식' | '기타';
   date?: string;
   notes?: string;

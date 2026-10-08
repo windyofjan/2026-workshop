@@ -46,7 +46,7 @@ export const ScheduleView: React.FC = () => {
   // 08:00 to 23:00 timeline hours
   const START_HOUR = 8;
   const END_HOUR = 23;
-  const HOUR_HEIGHT = 84; // 84px per hour
+  const [hourHeight, setHourHeight] = useState<number>(130); // 130px default per hour (spacious for 30-min events)
   const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => i + START_HOUR);
 
   // Helper: parse "10:30 - 12:00" or "10:30~12:00" into total minutes from midnight
@@ -120,8 +120,8 @@ export const ScheduleView: React.FC = () => {
     const dayStartMins = START_HOUR * 60; // 08:00 = 480 mins
 
     const relativeStartMins = Math.max(0, startTotalMins - dayStartMins);
-    const top = (relativeStartMins / 60) * HOUR_HEIGHT;
-    const height = Math.max(48, (durationMins / 60) * HOUR_HEIGHT);
+    const top = (relativeStartMins / 60) * hourHeight;
+    const height = Math.max(56, (durationMins / 60) * hourHeight);
 
     return {
       top: `${top}px`,
@@ -233,11 +233,15 @@ export const ScheduleView: React.FC = () => {
     setShowAddModal(false);
   };
 
-  const openAddForSlot = (day: 'Day 1' | 'Day 2', hour: number) => {
+  const openAddForSlot = (day: 'Day 1' | 'Day 2', hour: number, minute: number = 0) => {
     setEditingItem(null);
     setSelectedDay(day);
-    const startStr = hour < 10 ? `0${hour}:00` : `${hour}:00`;
-    const endStr = hour + 1 < 10 ? `0${hour + 1}:00` : `${hour + 1}:00`;
+    const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+    const startStr = `${pad(hour)}:${pad(minute)}`;
+    const endTotal = hour * 60 + minute + (minute === 0 ? 60 : 30);
+    const endH = Math.floor(endTotal / 60);
+    const endM = endTotal % 60;
+    const endStr = `${pad(endH)}:${pad(endM)}`;
     setTime(`${startStr} - ${endStr}`);
     setTitle('');
     setLocation('');
@@ -353,6 +357,49 @@ export const ScheduleView: React.FC = () => {
             </button>
           </div>
 
+          {/* Timeline Spacing Selector (Only in timeline mode) */}
+          {viewMode === 'timeline' && (
+            <div className="bg-slate-100 p-1 rounded-xl flex items-center space-x-1 border border-slate-200/60 text-xs">
+              <span className="text-[10px] text-slate-500 font-bold px-1.5 hidden sm:inline">칸 간격:</span>
+              <button
+                type="button"
+                onClick={() => setHourHeight(100)}
+                className={`px-2 py-1 rounded-lg text-xs font-bold transition ${
+                  hourHeight === 100
+                    ? 'bg-white text-slate-900 shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="1시간 = 100px (30분 = 50px)"
+              >
+                보통
+              </button>
+              <button
+                type="button"
+                onClick={() => setHourHeight(130)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                  hourHeight === 130
+                    ? 'bg-emerald-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="1시간 = 130px (30분 = 65px - 제목 잘 보임!)"
+              >
+                넓게
+              </button>
+              <button
+                type="button"
+                onClick={() => setHourHeight(160)}
+                className={`px-2 py-1 rounded-lg text-xs font-bold transition ${
+                  hourHeight === 160
+                    ? 'bg-teal-700 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="1시간 = 160px (30분 = 80px - 매우 여유로움)"
+              >
+                매우 넓게
+              </button>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={() => {
@@ -412,16 +459,16 @@ export const ScheduleView: React.FC = () => {
                 return (
                   <div
                     key={hour}
-                    style={{ height: `${HOUR_HEIGHT}px` }}
-                    className="border-b border-slate-200/80 relative text-center flex flex-col items-center justify-start pt-2 px-1"
+                    style={{ height: `${hourHeight}px` }}
+                    className="border-b border-slate-200/80 relative text-center flex flex-col items-center justify-between py-2 px-1"
                   >
-                    <span className="text-xs font-extrabold text-slate-600 font-mono tracking-tight">
+                    <span className="text-xs font-extrabold text-slate-700 font-mono tracking-tight">
                       {hourLabel}
                     </span>
                     {/* 30-min guideline label */}
-                    <span className="text-[9px] text-slate-400 font-mono absolute top-1/2 -translate-y-1/2 right-2">
-                      :30
-                    </span>
+                    <div className="w-full flex items-center justify-end pr-2 text-[10px] text-slate-400 font-mono">
+                      <span>:30</span>
+                    </div>
                   </div>
                 );
               })}
@@ -435,27 +482,43 @@ export const ScheduleView: React.FC = () => {
                   className={`${
                     activeDayTab === 'all' ? 'w-1/2' : 'w-full'
                   } relative bg-emerald-50/10 min-h-full`}
-                  style={{ height: `${hours.length * HOUR_HEIGHT}px` }}
+                  style={{ height: `${hours.length * hourHeight}px` }}
                 >
-                  {/* Background Hour Lines */}
+                  {/* Background Hour Lines with :00 and :30 Quick Add */}
                   {hours.map((hour) => (
                     <div
                       key={hour}
-                      style={{ height: `${HOUR_HEIGHT}px` }}
+                      style={{ height: `${hourHeight}px` }}
                       className="border-b border-slate-100/90 relative group/slot"
                     >
-                      {/* Half Hour Line */}
-                      <div className="absolute top-1/2 left-0 right-0 border-b border-dashed border-slate-200/50" />
+                      {/* Half Hour Guideline Line */}
+                      <div className="absolute top-1/2 left-0 right-0 border-b border-dashed border-slate-200/70" />
 
-                      {/* Quick Add Button on Hover */}
-                      <button
-                        type="button"
-                        onClick={() => openAddForSlot('Day 1', hour)}
-                        className="absolute bottom-1 right-2 p-1 bg-white hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-md text-[10px] font-bold opacity-0 group-hover/slot:opacity-100 transition z-10 shadow-2xs flex items-center space-x-1"
-                      >
-                        <Plus className="w-3 h-3" />
-                        <span>{hour}:00 일정 추가</span>
-                      </button>
+                      {/* Top Half (:00 Quick Add) */}
+                      <div className="absolute top-0 left-0 right-0 h-1/2 group/top flex items-start justify-end p-1">
+                        <button
+                          type="button"
+                          onClick={() => openAddForSlot('Day 1', hour, 0)}
+                          className="p-1 bg-white hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-md text-[10px] font-bold opacity-0 group-hover/top:opacity-100 transition z-10 shadow-2xs flex items-center space-x-1"
+                          title={`${hour}:00 일정 추가`}
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>{hour}:00 추가</span>
+                        </button>
+                      </div>
+
+                      {/* Bottom Half (:30 Quick Add) */}
+                      <div className="absolute bottom-0 left-0 right-0 h-1/2 group/bottom flex items-end justify-end p-1">
+                        <button
+                          type="button"
+                          onClick={() => openAddForSlot('Day 1', hour, 30)}
+                          className="p-1 bg-white hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-md text-[10px] font-bold opacity-0 group-hover/bottom:opacity-100 transition z-10 shadow-2xs flex items-center space-x-1"
+                          title={`${hour}:30 일정 추가`}
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>{hour}:30 추가</span>
+                        </button>
+                      </div>
                     </div>
                   ))}
 
@@ -477,15 +540,15 @@ export const ScheduleView: React.FC = () => {
                           top: posStyle.top,
                           height: posStyle.height,
                         }}
-                        className={`absolute left-2 right-2 z-10 bg-white border border-emerald-300 hover:border-emerald-600 rounded-xl p-2.5 shadow-2xs hover:shadow-md transition duration-150 group/card cursor-grab active:cursor-grabbing flex flex-col justify-between overflow-hidden ${
+                        className={`absolute left-2 right-2 z-10 bg-white border border-emerald-300 hover:border-emerald-600 rounded-xl p-2 shadow-2xs hover:shadow-md transition duration-150 group/card cursor-grab active:cursor-grabbing flex flex-col justify-between overflow-hidden ${
                           draggingId === item.id ? 'opacity-40 scale-95 border-emerald-600' : ''
                         }`}
                       >
-                        <div>
+                        <div className="min-w-0">
                           {/* Time & Category Bar */}
-                          <div className="flex items-center justify-between gap-1 mb-1">
+                          <div className="flex items-center justify-between gap-1 mb-1 min-w-0">
                             <span
-                              className={`inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border ${getCategoryBadgeClass(
+                              className={`inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border shrink-0 ${getCategoryBadgeClass(
                                 item.category
                               )}`}
                             >
@@ -493,8 +556,8 @@ export const ScheduleView: React.FC = () => {
                               <span>{item.category}</span>
                             </span>
 
-                            <span className="text-[10px] font-bold text-slate-600 font-mono flex items-center space-x-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/70">
-                              <Clock className="w-2.5 h-2.5 text-emerald-600" />
+                            <span className="text-[10px] font-bold text-slate-600 font-mono flex items-center space-x-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/70 truncate">
+                              <Clock className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
                               <span>{details.formattedStart} ~ {details.formattedEnd}</span>
                               <span className="text-[9px] text-emerald-700 font-semibold ml-0.5">
                                 ({formatDurationText(details.durationMins)})
@@ -502,14 +565,17 @@ export const ScheduleView: React.FC = () => {
                             </span>
                           </div>
 
-                          {/* Title */}
-                          <h4 className="text-xs font-bold text-slate-900 leading-snug truncate">
+                          {/* Title - clearly displayed without cutoff */}
+                          <h4
+                            className="text-xs font-bold text-slate-900 leading-snug break-words line-clamp-2 mt-0.5"
+                            title={item.title}
+                          >
                             {item.title}
                           </h4>
 
                           {/* Location */}
                           {item.location && (
-                            <p className="text-[11px] text-emerald-700 font-medium flex items-center space-x-0.5 mt-0.5">
+                            <p className="text-[10px] text-emerald-700 font-medium flex items-center space-x-0.5 mt-0.5 truncate">
                               <MapPin className="w-3 h-3 shrink-0" />
                               <span className="truncate">{item.location}</span>
                             </p>
@@ -554,27 +620,43 @@ export const ScheduleView: React.FC = () => {
                   className={`${
                     activeDayTab === 'all' ? 'w-1/2' : 'w-full'
                   } relative bg-teal-50/10 min-h-full`}
-                  style={{ height: `${hours.length * HOUR_HEIGHT}px` }}
+                  style={{ height: `${hours.length * hourHeight}px` }}
                 >
-                  {/* Background Hour Lines */}
+                  {/* Background Hour Lines with :00 and :30 Quick Add */}
                   {hours.map((hour) => (
                     <div
                       key={hour}
-                      style={{ height: `${HOUR_HEIGHT}px` }}
+                      style={{ height: `${hourHeight}px` }}
                       className="border-b border-slate-100/90 relative group/slot"
                     >
                       {/* Half Hour Line */}
-                      <div className="absolute top-1/2 left-0 right-0 border-b border-dashed border-slate-200/50" />
+                      <div className="absolute top-1/2 left-0 right-0 border-b border-dashed border-slate-200/70" />
 
-                      {/* Quick Add Button on Hover */}
-                      <button
-                        type="button"
-                        onClick={() => openAddForSlot('Day 2', hour)}
-                        className="absolute bottom-1 right-2 p-1 bg-white hover:bg-teal-100 text-teal-700 border border-teal-200 rounded-md text-[10px] font-bold opacity-0 group-hover/slot:opacity-100 transition z-10 shadow-2xs flex items-center space-x-1"
-                      >
-                        <Plus className="w-3 h-3" />
-                        <span>{hour}:00 일정 추가</span>
-                      </button>
+                      {/* Top Half (:00 Quick Add) */}
+                      <div className="absolute top-0 left-0 right-0 h-1/2 group/top flex items-start justify-end p-1">
+                        <button
+                          type="button"
+                          onClick={() => openAddForSlot('Day 2', hour, 0)}
+                          className="p-1 bg-white hover:bg-teal-100 text-teal-700 border border-teal-200 rounded-md text-[10px] font-bold opacity-0 group-hover/top:opacity-100 transition z-10 shadow-2xs flex items-center space-x-1"
+                          title={`${hour}:00 일정 추가`}
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>{hour}:00 추가</span>
+                        </button>
+                      </div>
+
+                      {/* Bottom Half (:30 Quick Add) */}
+                      <div className="absolute bottom-0 left-0 right-0 h-1/2 group/bottom flex items-end justify-end p-1">
+                        <button
+                          type="button"
+                          onClick={() => openAddForSlot('Day 2', hour, 30)}
+                          className="p-1 bg-white hover:bg-teal-100 text-teal-700 border border-teal-200 rounded-md text-[10px] font-bold opacity-0 group-hover/bottom:opacity-100 transition z-10 shadow-2xs flex items-center space-x-1"
+                          title={`${hour}:30 일정 추가`}
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>{hour}:30 추가</span>
+                        </button>
+                      </div>
                     </div>
                   ))}
 
@@ -596,15 +678,15 @@ export const ScheduleView: React.FC = () => {
                           top: posStyle.top,
                           height: posStyle.height,
                         }}
-                        className={`absolute left-2 right-2 z-10 bg-white border border-teal-300 hover:border-teal-600 rounded-xl p-2.5 shadow-2xs hover:shadow-md transition duration-150 group/card cursor-grab active:cursor-grabbing flex flex-col justify-between overflow-hidden ${
+                        className={`absolute left-2 right-2 z-10 bg-white border border-teal-300 hover:border-teal-600 rounded-xl p-2 shadow-2xs hover:shadow-md transition duration-150 group/card cursor-grab active:cursor-grabbing flex flex-col justify-between overflow-hidden ${
                           draggingId === item.id ? 'opacity-40 scale-95 border-teal-600' : ''
                         }`}
                       >
-                        <div>
+                        <div className="min-w-0">
                           {/* Time & Category Bar */}
-                          <div className="flex items-center justify-between gap-1 mb-1">
+                          <div className="flex items-center justify-between gap-1 mb-1 min-w-0">
                             <span
-                              className={`inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border ${getCategoryBadgeClass(
+                              className={`inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold border shrink-0 ${getCategoryBadgeClass(
                                 item.category
                               )}`}
                             >
@@ -612,8 +694,8 @@ export const ScheduleView: React.FC = () => {
                               <span>{item.category}</span>
                             </span>
 
-                            <span className="text-[10px] font-bold text-slate-600 font-mono flex items-center space-x-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/70">
-                              <Clock className="w-2.5 h-2.5 text-teal-600" />
+                            <span className="text-[10px] font-bold text-slate-600 font-mono flex items-center space-x-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200/70 truncate">
+                              <Clock className="w-2.5 h-2.5 text-teal-600 shrink-0" />
                               <span>{details.formattedStart} ~ {details.formattedEnd}</span>
                               <span className="text-[9px] text-teal-700 font-semibold ml-0.5">
                                 ({formatDurationText(details.durationMins)})
@@ -621,14 +703,17 @@ export const ScheduleView: React.FC = () => {
                             </span>
                           </div>
 
-                          {/* Title */}
-                          <h4 className="text-xs font-bold text-slate-900 leading-snug truncate">
+                          {/* Title - clearly displayed without cutoff */}
+                          <h4
+                            className="text-xs font-bold text-slate-900 leading-snug break-words line-clamp-2 mt-0.5"
+                            title={item.title}
+                          >
                             {item.title}
                           </h4>
 
                           {/* Location */}
                           {item.location && (
-                            <p className="text-[11px] text-teal-700 font-medium flex items-center space-x-0.5 mt-0.5">
+                            <p className="text-[10px] text-teal-700 font-medium flex items-center space-x-0.5 mt-0.5 truncate">
                               <MapPin className="w-3 h-3 shrink-0" />
                               <span className="truncate">{item.location}</span>
                             </p>

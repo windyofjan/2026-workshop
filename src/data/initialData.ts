@@ -4,6 +4,7 @@ export const TOTAL_BUDGET_LIMIT = 2500000; // 2,500,000 KRW (250만원)
 
 export const INITIAL_BUDGETS: Omit<BudgetItem, 'id'>[] = [
   {
+    type: 'planned',
     item: '숙소 대관료 (가평 독채 펜션)',
     amount: 950000,
     payer: '유옥',
@@ -14,6 +15,7 @@ export const INITIAL_BUDGETS: Omit<BudgetItem, 'id'>[] = [
     createdAt: new Date().toISOString(),
   },
   {
+    type: 'planned',
     item: '1~3호차 유류비 & 톨게이트비 지원',
     amount: 150000,
     payer: '권웅',
@@ -24,6 +26,7 @@ export const INITIAL_BUDGETS: Omit<BudgetItem, 'id'>[] = [
     createdAt: new Date().toISOString(),
   },
   {
+    type: 'planned',
     item: 'Day 1 점심 숯불 닭갈비 식당 예약금',
     amount: 180000,
     payer: '현정',
@@ -34,6 +37,7 @@ export const INITIAL_BUDGETS: Omit<BudgetItem, 'id'>[] = [
     createdAt: new Date().toISOString(),
   },
   {
+    type: 'planned',
     item: '저녁 바베큐 재료 & 음료/주류 장보기',
     amount: 280000,
     payer: '신혜',
@@ -44,6 +48,7 @@ export const INITIAL_BUDGETS: Omit<BudgetItem, 'id'>[] = [
     createdAt: new Date().toISOString(),
   },
   {
+    type: 'planned',
     item: '팀빌딩 레크레이션 상품 & 야식 간식',
     amount: 90000,
     payer: '다온',

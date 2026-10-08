@@ -67,6 +67,22 @@
         "notes": { "type": "string" }
       },
       "required": ["type", "groupName"]
+    },
+    "budgets": {
+      "title": "Budgets",
+      "description": "Workshop planned budget and actual expenses",
+      "properties": {
+        "type": { "type": "string" },
+        "item": { "type": "string" },
+        "amount": { "type": "number" },
+        "payer": { "type": "string" },
+        "category": { "type": "string" },
+        "date": { "type": "string" },
+        "notes": { "type": "string" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["item", "amount", "category"]
     }
   }
 }
